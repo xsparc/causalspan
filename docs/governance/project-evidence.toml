@@ -1,0 +1,78 @@
+schema_version = 1
+project = "causalspan"
+research_decisions = []
+
+[authority]
+source_priority = ["docs/architecture/overview.md", "docs/roadmap/implementation-roadmap.md", "docs/architecture/decisions/", "code-and-tests", "supporting-documentation"]
+dhf_is_authoritative = false
+
+[review]
+last_reviewed = "2026-11-17"
+review_due = "2026-12-17"
+
+[[objectives]]
+id = "OBJ-001"
+statement = "Debug agent behavior locally with portable OpenTelemetry evidence"
+status = "active"
+source_refs = ["docs/architecture/overview.md"]
+validation_refs = ["docs/governance/validation.md"]
+
+[[requirements]]
+id = "REQ-001"
+statement = "Record agent/model/tool spans with native context and opt-in payload capture"
+status = "implemented"
+objective_ids = ["OBJ-001"]
+roadmap_refs = ["docs/roadmap/implementation-roadmap.md"]
+design_refs = ["docs/architecture/overview.md", "docs/architecture/decisions/0001-local-otel-foundation.md"]
+implementation_refs = ["src/causalspan/tracing.py", "src/causalspan/exporter.py", "src/causalspan/privacy.py"]
+verification_refs = ["tests/test_tracing.py"]
+validation_refs = ["docs/governance/validation.md", "examples/record_and_replay.py"]
+risk_refs = ["docs/governance/risks.md"]
+
+[[requirements]]
+id = "REQ-002"
+statement = "Inspect, compare, evaluate, and render bounded local trace inputs"
+status = "implemented"
+objective_ids = ["OBJ-001"]
+roadmap_refs = ["docs/roadmap/implementation-roadmap.md"]
+design_refs = ["docs/architecture/overview.md"]
+implementation_refs = ["src/causalspan/reader.py", "src/causalspan/report.py", "src/causalspan/cli.py"]
+verification_refs = ["tests/test_reader_report.py", "tests/test_cli.py"]
+validation_refs = ["docs/governance/validation.md", "src/causalspan/demo.py"]
+risk_refs = ["docs/governance/risks.md"]
+
+[[requirements]]
+id = "REQ-003"
+statement = "Replay recorded tool responses without live execution or silent fallback"
+status = "implemented"
+objective_ids = ["OBJ-001"]
+roadmap_refs = ["docs/roadmap/implementation-roadmap.md"]
+design_refs = ["docs/architecture/decisions/0001-local-otel-foundation.md"]
+implementation_refs = ["src/causalspan/replay.py"]
+verification_refs = ["tests/test_replay.py"]
+validation_refs = ["docs/governance/validation.md", "examples/record_and_replay.py"]
+risk_refs = ["docs/governance/risks.md"]
+
+[[requirements]]
+id = "REQ-004"
+statement = "Provide protocol-specific MCP and A2A propagation adapters"
+status = "deferred"
+objective_ids = ["OBJ-001"]
+roadmap_refs = ["docs/roadmap/implementation-roadmap.md"]
+design_refs = ["docs/architecture/overview.md"]
+implementation_refs = []
+verification_refs = []
+validation_refs = []
+risk_refs = ["docs/governance/risks.md"]
+deferral_reason = "The initial slice establishes local tracing and replay before transport integrations"
+reconsideration_trigger = "Core API feedback and protocol-specific fixture coverage are available"
+
+[[work_items]]
+id = "CS-001"
+title = "Local tracing and replay foundation"
+status = "closed"
+requirement_ids = ["REQ-001", "REQ-002", "REQ-003"]
+roadmap_refs = ["docs/roadmap/implementation-roadmap.md"]
+approval_ref = "conversation:2026-11-17-start-open-source-project"
+acceptance_refs = ["docs/roadmap/implementation-roadmap.md"]
+evidence_refs = ["docs/governance/validation.md"]

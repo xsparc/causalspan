@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "baseline_commit": null,
+  "baseline_note": "New repository; no baseline commit existed before the initial implementation.",
+  "scanned_at": "2026-11-17",
+  "coverage": [
+    "GenAI and OTLP standards",
+    "Python instrumentation",
+    "comparable observability tools and naming",
+    "MCP/A2A integration boundaries",
+    "local-data privacy and CI supply-chain controls"
+  ],
+  "findings": [
+    {
+      "finding": "GenAI span conventions remain in development, including invoke_agent and execute_tool; separate the mapping from the rest of the product.",
+      "source_event_date": null,
+      "citations": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/gen-ai/gen-ai-agent-spans.md",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/gen-ai/gen-ai-spans.md"
+      ],
+      "confidence": "high",
+      "relevance": "Core interoperability",
+      "direction_alignment": "Matches the requested OpenTelemetry-native foundation",
+      "opportunity_or_risk": "Future attribute changes require compatibility review",
+      "engineering_cost": "Small initial mapping; continuing compatibility tests",
+      "disposition": "adopt",
+      "roadmap_delta": "Use native SDK spans and isolate metadata fields",
+      "verification_needed": "Versioned external fixtures and future schema migration tests"
+    },
+    {
+      "finding": "OTLP JSON uses hexadecimal trace/span IDs and integer enums. The SDK protobuf encoder can supply the trace structure.",
+      "source_event_date": null,
+      "citations": [
+        "https://opentelemetry.io/docs/specs/otlp/",
+        "https://opentelemetry.io/docs/languages/python/instrumentation/"
+      ],
+      "confidence": "high",
+      "relevance": "Portable local storage",
+      "direction_alignment": "Avoid a proprietary trace format",
+      "opportunity_or_risk": "Generic protobuf JSON uses base64 IDs, so conversion must be tested",
+      "engineering_cost": "Small exporter plus schema decode tests",
+      "disposition": "adopt",
+      "roadmap_delta": "Persist OTLP ExportTraceServiceRequest documents as JSON lines",
+      "verification_needed": "Decode emitted messages with the official schema; broader external collector interoperability remains future work"
+    },
+    {
+      "finding": "The name Spanforge is already used by public tracing projects. The maintainer selected a distinct project name; CausalSpan had no exact repository-name search results during setup.",
+      "source_event_date": null,
+      "citations": [
+        "https://github.com/robmcelhinney/spanforge",
+        "https://www.getspanforge.com/docs"
+      ],
+      "confidence": "medium",
+      "relevance": "Project identity",
+      "direction_alignment": "Retains the concept with a distinct name",
+      "opportunity_or_risk": "Search is not a guarantee of name availability in every registry",
+      "engineering_cost": "Low before initial publication",
+      "disposition": "adopt",
+      "roadmap_delta": "Use CausalSpan for this repository",
+      "verification_needed": "Recheck package registry availability before a package release"
+    },
+    {
+      "finding": "Langfuse exposes OpenTelemetry ingestion and SDKs; a small offline debugging workflow should have a narrower scope than a hosted observability platform.",
+      "source_event_date": null,
+      "citations": [
+        "https://langfuse.com/docs/observability/sdk/overview",
+        "https://langfuse.com/docs/observability/data-model"
+      ],
+      "confidence": "high",
+      "relevance": "Product scope",
+      "direction_alignment": "Emphasize local inspection and mocked tool replay",
+      "opportunity_or_risk": "Broad provider/framework coverage would expand maintenance substantially",
+      "engineering_cost": "High for automatic integrations",
+      "disposition": "monitor",
+      "roadmap_delta": "Keep initial instrumentation explicit",
+      "verification_needed": "User feedback on local workflow and compatibility fixtures"
+    },
+    {
+      "finding": "MCP and A2A have protocol-specific message and lifecycle semantics that need dedicated propagation tests.",
+      "source_event_date": null,
+      "citations": [
+        "https://modelcontextprotocol.io/specification/2025-11-25/basic/utilities/ping",
+        "https://a2a-protocol.org/latest/specification/"
+      ],
+      "confidence": "medium",
+      "relevance": "Future cross-agent interoperability",
+      "direction_alignment": "Preserves the original multi-protocol direction",
+      "opportunity_or_risk": "Manual tool wrapping must not be advertised as native protocol integration",
+      "engineering_cost": "Medium per tested adapter",
+      "disposition": "monitor",
+      "roadmap_delta": "Defer protocol adapters to CS-003",
+      "verification_needed": "Current protocol tracing specifications and conformance fixtures"
+    }
+  ],
+  "overall_recommendation": "Build one local Python tracing/comparison/replay slice with explicit instrumentation, opt-in payloads, offline tests, and no hosted services. Keep research advisory; the implementation scope follows the maintainer's project-creation request.",
+  "evidence_gaps": [
+    "No live provider or distributed protocol test",
+    "No claim of trademark or universal package-name clearance",
+    "Tool-payload key redaction cannot guarantee confidentiality",
+    "External OTLP compatibility matrix remains proposed work"
+  ],
+  "next_review_trigger": "Semantic-convention or OpenTelemetry dependency changes; review before protocol adapters or a package release."
+}

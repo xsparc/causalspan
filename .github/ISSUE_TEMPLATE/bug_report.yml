@@ -1,0 +1,21 @@
+name: Bug report
+description: Report a reproducible problem using synthetic data
+title: "bug: "
+body:
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Expected and observed behavior
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Include package versions and synthetic input. Remove secrets and private paths.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Python and operating system versions

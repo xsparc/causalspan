@@ -1,0 +1,17 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+dist/
+*.egg-info/
+.coverage
+htmlcov/
+.env
+.env.*
+.agents/
+.codex/
+.local/
+traces/
+*.otlp.jsonl
+timeline.html

@@ -76,7 +76,9 @@ result = recording.call("add", {"a": 2, "b": 3})
 recording.assert_complete()
 ```
 
-Replay matches the next recorded tool name and exact JSON arguments. A mismatch,
+Replay uses explicit tool-call sequence metadata, then matches the next recorded
+tool name and exact JSON arguments. External recordings without sequence metadata
+must have distinct start times; tied timestamps are rejected as ambiguous. A mismatch,
 missing payload, redacted payload, overlapping call, or exhausted recording raises
 `ReplayError`. Failed recorded calls raise `RecordedToolError`. Replay has no live
 tool fallback. It reproduces tool returns, not model output or a whole distributed

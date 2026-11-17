@@ -76,3 +76,13 @@ roadmap_refs = ["docs/roadmap/implementation-roadmap.md"]
 approval_ref = "conversation:2026-11-17-start-open-source-project"
 acceptance_refs = ["docs/roadmap/implementation-roadmap.md"]
 evidence_refs = ["docs/governance/validation.md"]
+
+[[work_items]]
+id = "CS-005"
+title = "Preserve tool replay ordering with coarse timestamps"
+status = "verified"
+requirement_ids = ["REQ-001", "REQ-003"]
+roadmap_refs = ["docs/roadmap/implementation-roadmap.md"]
+approval_ref = "conversation:2026-11-17-start-open-source-project"
+acceptance_refs = ["docs/roadmap/implementation-roadmap.md"]
+evidence_refs = ["docs/governance/validation.md"]

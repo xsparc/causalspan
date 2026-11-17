@@ -1,3 +1,6 @@
+import asyncio
+import json
+
 import pytest
 
 from causalspan import AgentTracer
@@ -71,3 +74,81 @@ def test_replay_does_not_execute_code_in_payload(tmp_path):
     with AgentTracer(path, capture_payloads=True) as tracer:
         tracer.call_tool("text", lambda: {"content": text}, {})
     assert Replay(path).call("text", {}) == {"content": text}
+
+
+def flatten_clock(path, *, omit_order=False):
+    documents = [json.loads(line) for line in path.read_text().splitlines()]
+    for document in documents:
+        for resource in document["resourceSpans"]:
+            for scope in resource["scopeSpans"]:
+                for span in scope["spans"]:
+                    span["startTimeUnixNano"] = span["endTimeUnixNano"] = "1000"
+                    if omit_order:
+                        span["attributes"] = [
+                            a
+                            for a in span["attributes"]
+                            if not a["key"].startswith("causalspan.tool.")
+                        ]
+    # Reverse file order as well, proving replay uses invocation sequence.
+    path.write_text("\n".join(json.dumps(d) for d in reversed(documents)), encoding="utf-8")
+
+
+def test_tied_timestamps_use_explicit_call_sequence(tmp_path):
+    path = tmp_path / "coarse.jsonl"
+    with AgentTracer(path, capture_payloads=True) as tracer:
+        with tracer.agent("run"):
+            for value in [1, 2, 3]:
+                tracer.call_tool("step", lambda x: x, {"x": value})
+    flatten_clock(path)
+    replay = Replay(path)
+    assert [replay.call("step", {"x": x}) for x in [1, 2, 3]] == [1, 2, 3]
+    replay.assert_complete()
+
+
+def test_external_tied_timestamps_are_ambiguous(tmp_path):
+    path = tmp_path / "external.jsonl"
+    with AgentTracer(path, capture_payloads=True) as tracer:
+        with tracer.agent("run"):
+            for value in [1, 2]:
+                tracer.call_tool("step", lambda x: x, {"x": value})
+    flatten_clock(path, omit_order=True)
+    with pytest.raises(ReplayError, match="ambiguous"):
+        Replay(path)
+
+
+def test_nested_tool_parentage_rejects_zero_duration_overlap(tmp_path):
+    path = tmp_path / "nested.jsonl"
+    with AgentTracer(path, capture_payloads=True) as tracer:
+        with tracer.tool("outer"), tracer.agent("delegate"):
+            tracer.call_tool("inner", lambda: 1, {})
+    flatten_clock(path, omit_order=True)
+    with pytest.raises(ReplayError, match="overlapping"):
+        Replay(path)
+
+
+@pytest.mark.parametrize("value", [True, -1, "one"])
+def test_invalid_sequence_is_rejected(tmp_path, value):
+    path = tmp_path / "bad-order.jsonl"
+    with AgentTracer(path, capture_payloads=True) as tracer:
+        with tracer.tool("bad") as span:
+            span.set_attribute("causalspan.tool.sequence", value)
+    with pytest.raises(ReplayError, match="ordering"):
+        Replay(path)
+
+
+def test_concurrent_siblings_rejected_even_with_coarse_clock(tmp_path):
+    path = tmp_path / "siblings.jsonl"
+
+    async def child(tracer, name):
+        with tracer.tool(name):
+            await asyncio.sleep(0)
+
+    async def run(tracer):
+        with tracer.agent("run"):
+            await asyncio.gather(child(tracer, "one"), child(tracer, "two"))
+
+    with AgentTracer(path) as tracer:
+        asyncio.run(run(tracer))
+    flatten_clock(path)
+    with pytest.raises(ReplayError, match="overlapping"):
+        Replay(path)

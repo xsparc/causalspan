@@ -2,6 +2,7 @@
 
 from contextlib import contextmanager
 from pathlib import Path
+from threading import Lock
 from typing import Any
 
 from opentelemetry.sdk.resources import Resource
@@ -35,6 +36,9 @@ class AgentTracer:
         self.provider.add_span_processor(SimpleSpanProcessor(self.exporter))
         self.tracer = self.provider.get_tracer("causalspan", "0.1.0a1")
         self._closed = False
+        self._tool_lock = Lock()
+        self._tool_sequence = 0
+        self._active_tools = {}
 
     def __enter__(self):
         return self
@@ -88,8 +92,9 @@ class AgentTracer:
             },
         )
 
+    @contextmanager
     def tool(self, name: str):
-        return self._span(
+        with self._span(
             f"execute_tool {name}",
             SpanKind.INTERNAL,
             {
@@ -97,7 +102,26 @@ class AgentTracer:
                 "gen_ai.tool.name": name,
                 "gen_ai.tool.type": "function",
             },
-        )
+        ) as span:
+            trace_id = span.get_span_context().trace_id
+            with self._tool_lock:
+                sequence = self._tool_sequence
+                span.set_attribute("causalspan.tool.sequence", sequence)
+                self._tool_sequence += 1
+                active = self._active_tools.setdefault(trace_id, {})
+                if active:
+                    span.set_attribute("causalspan.tool.overlap", True)
+                    for other in active.values():
+                        other.set_attribute("causalspan.tool.overlap", True)
+                active[sequence] = span
+            try:
+                yield span
+            finally:
+                with self._tool_lock:
+                    active = self._active_tools[trace_id]
+                    active.pop(sequence)
+                    if not active:
+                        del self._active_tools[trace_id]
 
     @staticmethod
     def usage(span, *, input_tokens: int, output_tokens: int) -> None:

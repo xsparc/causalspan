@@ -29,6 +29,8 @@ _METADATA = frozenset(
         "causalspan.retry.attempt",
         "causalspan.policy.name",
         "causalspan.policy.allowed",
+        "causalspan.tool.sequence",
+        "causalspan.tool.overlap",
     }
 )
 _PAYLOADS = frozenset({"gen_ai.tool.call.arguments", "gen_ai.tool.call.result"})

@@ -3,6 +3,9 @@
 Maintenance is initiated by the maintainer; no scheduled agent job is configured.
 GitHub Actions validates pushes and pull requests. Dependabot proposes dependency
 updates weekly. Updates require review and are never automatically merged.
+The default branch requires all four CI matrix checks and one approving review;
+administrators retain GitHub's override capability. Force pushes and branch deletion
+are disabled for `main`. Private vulnerability reporting is enabled.
 
 1. Read `AGENTS.md`, architecture, roadmap, open issues, current CI, and the evidence
    index. Preserve unrelated work and use a branch for subsequent changes.

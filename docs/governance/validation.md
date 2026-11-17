@@ -3,7 +3,7 @@
 Date: 2026-11-17
 Scope: CS-001, local tracing and replay foundation.
 
-The final Python 3.14 test run passed 52 tests after moving test temporary files
+The starter's final Python 3.14 test run passed 52 tests after moving test temporary files
 into the project and running outside the Windows execution sandbox. The sandboxed
 async test stalled during event-loop initialization; that run was interrupted and
 was not counted as a pass. The native async isolation test is included in the pass.
@@ -24,6 +24,20 @@ Actions tab after publication; local evidence does not claim a remote CI result.
 No live model provider, MCP/A2A transport, multi-process
 writer, hosted ingestion server, deployment, or package publication is validated
 by these tests.
+
+## Replay ordering correction
+
+The initial GitHub CI run passed on Linux/Python 3.11 and 3.14 and on
+Windows/Python 3.14. Windows/Python 3.11 exposed tied span timestamps that reordered
+sequential tool calls and concealed nested overlap. The correction adds explicit
+tool sequences, overlap metadata, and parentage checks. External recordings with
+tied timestamps and no sequence now fail as ambiguous. Regression tests flatten
+timestamps and reverse export order to avoid depending on host clock resolution.
+The correction passes 59 local tests, Ruff lint/format checks, and static plus dated
+strict governance checks. [Pull-request CI](https://github.com/xsparc/causalspan/actions/runs/44070861516)
+passed all four Linux/Windows and Python 3.11/3.14 jobs for commit `1ec3d5b`.
+This result is separate from the original 52-test starter result. Merge is pending
+maintainer approval.
 
 ## Governance checker scope
 

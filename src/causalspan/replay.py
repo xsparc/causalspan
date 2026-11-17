@@ -16,14 +16,42 @@ class RecordedToolError(ReplayError):
 
 class Replay:
     def __init__(self, path, *, trace_id: str | None = None):
-        self.calls = [
-            s for s in select_trace(load_traces(path), trace_id) if s.operation == "execute_tool"
-        ]
+        spans = select_trace(load_traces(path), trace_id)
+        self.calls = [s for s in spans if s.operation == "execute_tool"]
         if not self.calls:
             raise ReplayError("recording contains no tool calls")
-        for left, right in zip(self.calls, self.calls[1:], strict=False):
+        # Parentage and explicit overlap flags survive coarse or tied wall clocks.
+        parents = {s.span_id: s.parent_id for s in spans}
+        tool_ids = {s.span_id for s in self.calls}
+        clear_ancestors = set()
+        for span in self.calls:
+            overlap = span.attributes.get("causalspan.tool.overlap", False)
+            if type(overlap) is not bool:
+                raise ReplayError("invalid tool overlap metadata")
+            if overlap:
+                raise ReplayError("overlapping tool calls require explicit ordering support")
+            current, chain = span.parent_id, []
+            while current in parents and current not in clear_ancestors:
+                if current in tool_ids:
+                    raise ReplayError("overlapping tool calls require explicit ordering support")
+                chain.append(current)
+                current = parents[current]
+            clear_ancestors.update(chain)
+        chronological = sorted(self.calls, key=lambda s: s.start_ns)
+        for left, right in zip(chronological, chronological[1:], strict=False):
             if right.start_ns < left.end_ns:
                 raise ReplayError("overlapping tool calls require explicit ordering support")
+        sequences = [s.attributes.get("causalspan.tool.sequence") for s in self.calls]
+        if any(value is not None for value in sequences):
+            if any(type(value) is not int or value < 0 for value in sequences) or len(
+                set(sequences)
+            ) != len(sequences):
+                raise ReplayError("invalid or incomplete tool ordering metadata")
+            self.calls.sort(key=lambda s: s.attributes["causalspan.tool.sequence"])
+        else:
+            if len({s.start_ns for s in self.calls}) != len(self.calls):
+                raise ReplayError("ambiguous tool order: tied timestamps need ordering metadata")
+            self.calls = chronological
         self._position = 0
 
     def call(self, name: str, arguments: dict):

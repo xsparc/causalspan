@@ -20,7 +20,11 @@ secret detector. Span names and allowed metadata are caller-supplied and can sti
 contain sensitive information. Captured payloads must be reviewed before sharing.
 
 Replay reads recorded tool arguments and results from OTLP attributes. It matches
-calls in recorded order and checks the tool name and exact JSON arguments. It has
+calls in recorded order and checks the tool name and exact JSON arguments. The
+instrumentation assigns a per-tracer tool sequence and marks same-trace overlap;
+replay uses those fields and parentage so coarse clocks cannot reorder calls or
+hide nested/concurrent tool execution. External records without sequence metadata
+need distinct start times. It has
 no live-tool fallback. It is an explicit test double, not deterministic replay of
 an entire model or distributed application.
 

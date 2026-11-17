@@ -13,6 +13,14 @@ Expected paths: `src/`, `tests/`, `examples/`, `scripts/`, `docs/`, `.github/`,
 and root package/community files. Validate with pytest, Ruff, wheel installation,
 the offline demo and CLI, and static plus dated strict governance checks.
 
+## CS-005: replay ordering on coarse clocks
+
+Initial GitHub CI exposed tied timestamps on Windows/Python 3.11. Preserve explicit
+tool invocation order and detect same-trace overlap independently of clock
+resolution. Reject ambiguous external recordings. Acceptance: deterministic tied
+timestamp, nested-parent, concurrent-sibling, and invalid-metadata regressions pass,
+followed by the four-platform/version CI matrix. Merge remains a maintainer action.
+
 ## Future slices
 
 - CS-002: external OTLP fixture matrix and semantic convention compatibility.

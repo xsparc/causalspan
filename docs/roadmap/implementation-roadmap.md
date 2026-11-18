@@ -23,10 +23,15 @@ followed by the four-platform/version CI matrix. Merge remains a maintainer acti
 
 ## Future slices
 
-- CS-002: external OTLP fixture matrix and semantic convention compatibility.
+- CS-002 external OTLP compatibility is implemented below; further semantic-convention migrations remain proposed.
 - CS-003: MCP and A2A context propagation adapters with protocol-specific tests.
 - CS-004: asynchronous tool wrappers, richer comparison alignment, and evaluation
   datasets after the core API has user feedback.
 
 These are proposed directions. Review scope and evidence before implementation.
 No release, deployment, paid provider call, or merge is authorized by this roadmap.
+
+## CS-002: Otlp compatibility (2026-11-18)
+
+Implemented `docs/architecture/decisions/0002-otlp-compatibility.md`. Workflow: `docs/otlp-compatibility.md`.
+Evidence: `docs/governance/otlp-compatibility-validation.md`. Next five tasks: `docs/next-milestone.md`.

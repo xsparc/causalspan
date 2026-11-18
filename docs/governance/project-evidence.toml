@@ -1,6 +1,5 @@
 schema_version = 1
 project = "causalspan"
-research_decisions = []
 
 [authority]
 source_priority = ["docs/architecture/overview.md", "docs/roadmap/implementation-roadmap.md", "docs/architecture/decisions/", "code-and-tests", "supporting-documentation"]
@@ -86,3 +85,34 @@ roadmap_refs = ["docs/roadmap/implementation-roadmap.md"]
 approval_ref = "conversation:2026-11-17-start-open-source-project"
 acceptance_refs = ["docs/roadmap/implementation-roadmap.md"]
 evidence_refs = ["docs/governance/validation.md"]
+
+[[research_decisions]]
+id = "RD-OTLP-COMPATIBILITY"
+disposition = "adopted"
+source_urls = ["https://opentelemetry.io/docs/specs/otlp/", "https://protobuf.dev/programming-guides/json/"]
+observed_on = "2026-11-18"
+reviewed_on = "2026-11-18"
+review_due = "2026-12-18"
+decision_ref = "docs/architecture/decisions/0002-otlp-compatibility.md"
+
+[[requirements]]
+id = "REQ-OTLP-COMPATIBILITY"
+statement = "Otlp compatibility with bounded validation and explicit evidence semantics."
+status = "implemented"
+objective_ids = ["OBJ-001"]
+roadmap_refs = ["docs/roadmap/implementation-roadmap.md"]
+design_refs = ["docs/architecture/decisions/0002-otlp-compatibility.md"]
+risk_refs = ["docs/otlp-compatibility.md"]
+implementation_refs = ["src/causalspan/reader.py"]
+verification_refs = ["tests/test_otlp_compatibility.py", "tests/fixtures/external-otlp.json"]
+validation_refs = ["docs/governance/otlp-compatibility-validation.md"]
+
+[[work_items]]
+id = "CS-002-OTLP-COMPATIBILITY"
+title = "Otlp compatibility"
+status = "verified"
+requirement_ids = ["REQ-OTLP-COMPATIBILITY"]
+roadmap_refs = ["docs/roadmap/implementation-roadmap.md"]
+approval_ref = "conversation:2026-11-18-next-autonomous-milestone-and-draft-prs"
+acceptance_refs = ["docs/architecture/decisions/0002-otlp-compatibility.md"]
+evidence_refs = ["tests/test_otlp_compatibility.py", "tests/fixtures/external-otlp.json", "docs/governance/otlp-compatibility-validation.md"]

@@ -1,14 +1,18 @@
 """Bounded reading of OTLP JSON export requests and JSON-lines collections."""
 
+import base64
+import binascii
+import copy
 import json
 import math
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 MAX_FILE_BYTES = 32 * 1024 * 1024
 MAX_SPANS = 50_000
+MAX_METADATA_BYTES = 32 * 1024 * 1024
 
 
 class TraceFormatError(ValueError):
@@ -60,11 +64,20 @@ def _value(value: Any, depth: int = 0) -> Any:
         "arrayValue",
         "kvlistValue",
     }
+    known = {key for key in known if value[key] is not None}
+    if not known:
+        return None
     if len(known) != 1:
         raise TraceFormatError("invalid OTLP attribute value")
     kind = known.pop()
     item = value[kind]
-    if kind in {"stringValue", "bytesValue"} and isinstance(item, str):
+    if kind == "stringValue" and isinstance(item, str):
+        return item
+    if kind == "bytesValue" and isinstance(item, str):
+        try:
+            base64.b64decode(item + "=" * (-len(item) % 4), altchars=b"-_", validate=True)
+        except (ValueError, binascii.Error) as exc:
+            raise TraceFormatError("invalid base64 attribute") from exc
         return item
     if kind == "boolValue" and type(item) is bool:
         return item
@@ -109,6 +122,12 @@ class SpanRecord:
     status: int
     events: tuple[dict, ...]
     dropped: int
+    resource_attributes: dict = field(default_factory=dict)
+    scope_name: str = ""
+    scope_version: str = ""
+    scope_attributes: dict = field(default_factory=dict)
+    resource_schema_url: str = ""
+    scope_schema_url: str = ""
 
     @property
     def duration_ms(self) -> float:
@@ -119,7 +138,13 @@ class SpanRecord:
         return self.attributes.get("gen_ai.operation.name", "unknown")
 
 
-def _span(value: Any) -> SpanRecord:
+def _string(value: Any) -> str:
+    if not isinstance(value, str):
+        raise TraceFormatError("expected metadata string")
+    return value
+
+
+def _span(value: Any, *, metadata: dict | None = None) -> SpanRecord:
     span = _object(value)
     trace_id = _id(span.get("traceId"), 32)
     span_id = _id(span.get("spanId"), 16)
@@ -158,8 +183,27 @@ def _span(value: Any) -> SpanRecord:
         )
     )
     return SpanRecord(
-        trace_id, span_id, parent, name, start, end, attrs, status, tuple(events), dropped
+        trace_id,
+        span_id,
+        parent,
+        name,
+        start,
+        end,
+        attrs,
+        status,
+        tuple(events),
+        dropped,
+        **copy.deepcopy(metadata or {}),
     )
+
+
+def _unique(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise TraceFormatError("duplicate JSON field")
+        result[key] = value
+    return result
 
 
 def _reject_constant(value):
@@ -176,21 +220,42 @@ def load_traces(path: str | Path, *, max_bytes: int = MAX_FILE_BYTES) -> list[Sp
     try:
         text = raw.decode("utf-8-sig")
         try:
-            documents = [json.loads(text, parse_constant=_reject_constant)]
+            documents = [
+                json.loads(text, parse_constant=_reject_constant, object_pairs_hook=_unique)
+            ]
         except json.JSONDecodeError:
             documents = [
-                json.loads(line, parse_constant=_reject_constant)
+                json.loads(line, parse_constant=_reject_constant, object_pairs_hook=_unique)
                 for line in text.splitlines()
                 if line.strip()
             ]
         spans = []
+        metadata_bytes = 0
         seen = set()
         for document in documents:
             resources = _object(document).get("resourceSpans")
             for resource in _array(resources):
-                for scope in _array(_object(resource).get("scopeSpans", [])):
-                    for value in _array(_object(scope).get("spans", [])):
-                        span = _span(value)
+                resource = _object(resource)
+                resource_data = _object(resource.get("resource", {}))
+                resource_attrs = _attributes(resource_data.get("attributes", []))
+                resource_url = _string(resource.get("schemaUrl", ""))
+                for scope in _array(resource.get("scopeSpans", [])):
+                    scope = _object(scope)
+                    scope_data = _object(scope.get("scope", {}))
+                    metadata = {
+                        "resource_attributes": resource_attrs,
+                        "resource_schema_url": resource_url,
+                        "scope_name": _string(scope_data.get("name", "")),
+                        "scope_version": _string(scope_data.get("version", "")),
+                        "scope_attributes": _attributes(scope_data.get("attributes", [])),
+                        "scope_schema_url": _string(scope.get("schemaUrl", "")),
+                    }
+                    metadata_size = len(json.dumps(metadata, ensure_ascii=True).encode("utf-8"))
+                    for value in _array(scope.get("spans", [])):
+                        metadata_bytes += metadata_size
+                        if metadata_bytes > MAX_METADATA_BYTES:
+                            raise TraceFormatError("expanded metadata limit exceeded")
+                        span = _span(value, metadata=metadata)
                         key = (span.trace_id, span.span_id)
                         if key in seen:
                             raise TraceFormatError("duplicate span ID in trace")

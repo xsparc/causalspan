@@ -1,0 +1,119 @@
+{
+  "resourceSpans": [
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "service.name",
+            "value": {
+              "stringValue": "synthetic-service"
+            }
+          }
+        ]
+      },
+      "schemaUrl": "https://opentelemetry.io/schemas/1.40.0",
+      "scopeSpans": [
+        {
+          "scope": {
+            "name": "external.fixture",
+            "version": "1.0",
+            "attributes": [
+              {
+                "key": "scope.tag",
+                "value": {
+                  "stringValue": "test"
+                }
+              }
+            ]
+          },
+          "schemaUrl": "https://opentelemetry.io/schemas/1.40.0",
+          "spans": [
+            {
+              "traceId": "ABABABABABABABABABABABABABABABAB",
+              "spanId": "CDCDCDCDCDCDCDCD",
+              "name": "synthetic chat",
+              "startTimeUnixNano": "1000000000",
+              "endTimeUnixNano": 1001000000,
+              "attributes": [
+                {
+                  "key": "gen_ai.operation.name",
+                  "value": {
+                    "stringValue": "chat"
+                  }
+                },
+                {
+                  "key": "gen_ai.request.model",
+                  "value": {
+                    "stringValue": "synthetic-model"
+                  }
+                },
+                {
+                  "key": "gen_ai.usage.input_tokens",
+                  "value": {
+                    "intValue": "10"
+                  }
+                },
+                {
+                  "key": "gen_ai.usage.output_tokens",
+                  "value": {
+                    "intValue": 5
+                  }
+                },
+                {
+                  "key": "external.bytes",
+                  "value": {
+                    "bytesValue": "aGk="
+                  }
+                },
+                {
+                  "key": "external.empty",
+                  "value": {}
+                },
+                {
+                  "key": "external.array",
+                  "value": {
+                    "arrayValue": {
+                      "values": [
+                        {
+                          "boolValue": true
+                        },
+                        {
+                          "doubleValue": 1.25
+                        },
+                        {
+                          "intValue": "-9223372036854775808"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "key": "external.map",
+                  "value": {
+                    "kvlistValue": {
+                      "values": [
+                        {
+                          "key": "nested",
+                          "value": {
+                            "stringValue": "value"
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              ],
+              "status": {
+                "code": 1
+              },
+              "futureSpanField": {
+                "ignored": true
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "futureEnvelopeField": true
+}

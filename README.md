@@ -126,3 +126,5 @@ and Windows. Dependency updates are proposed through pull requests; no automatic
 merge, release, deployment, or scheduled agent maintenance is configured.
 
 Licensed under [MIT](LICENSE).
+
+[Otlp compatibility](docs/otlp-compatibility.md) documents the new behavior and limits.

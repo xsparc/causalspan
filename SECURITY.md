@@ -11,6 +11,9 @@ Tool payload capture is off by default. Opt-in capture redacts common sensitive
 mapping keys but cannot recognize every secret or sensitive free-text value.
 Names and metadata can also be private. Review trace files before sharing, use
 filesystem access controls, and delete recordings when they are no longer needed.
+New exporter recordings request mode `0600` on POSIX. This does not change
+existing recordings, exported reports, or Windows ACLs. Store outputs in a
+directory you control and verify access controls before sharing.
 
 The replay implementation never calls a live tool. The recording API's `call_tool`
 method deliberately executes the supplied function. Instrumentation is not a

@@ -2,6 +2,7 @@
 
 import base64
 import json
+import os
 import threading
 from pathlib import Path
 
@@ -36,6 +37,10 @@ _METADATA = frozenset(
 _PAYLOADS = frozenset({"gen_ai.tool.call.arguments", "gen_ai.tool.call.result"})
 
 
+def _open_trace(path: str, flags: int) -> int:
+    return os.open(path, flags, 0o600)
+
+
 def _hex_ids(record: dict) -> None:
     for key in ("traceId", "spanId", "parentSpanId"):
         if record.get(key):
@@ -57,7 +62,7 @@ class LocalTraceExporter(SpanExporter):
         self._closed = False
         self.failed_exports = 0
         # Open once to surface path/permission errors before instrumenting work.
-        self._stream = self.path.open("a", encoding="utf-8", newline="\n")
+        self._stream = open(self.path, "a", encoding="utf-8", newline="\n", opener=_open_trace)
 
     def _attributes(self, attributes: list[dict]) -> list[dict]:
         selected = []

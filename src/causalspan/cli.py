@@ -5,6 +5,7 @@ import json
 import sys
 from pathlib import Path
 
+from ._files import open_private
 from .demo import create_demo
 from .reader import MAX_FILE_BYTES, load_traces, select_trace
 from .replay import Replay
@@ -95,7 +96,7 @@ def main(argv=None) -> int:
                     )
                 else:
                     # Exclusive creation protects traces and existing reports.
-                    with args.output.open("x", encoding="utf-8") as stream:
+                    with open(args.output, "x", encoding="utf-8", opener=open_private) as stream:
                         stream.write(timeline_html(spans))
                     result = {"written": True}
         print(json.dumps(result, indent=2, allow_nan=False))

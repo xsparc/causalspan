@@ -50,3 +50,12 @@ references, accepted ADR coverage, approval references, and review freshness.
 It checks traceability structure; it cannot prove that a cited test passed or
 that a maintainer approved work. Those claims require the actual execution and
 conversation evidence.
+
+## Default permissions for new trace recordings
+
+The POSIX regression creates a synthetic trace with umask `022`, verifies
+mode `0600`, then appends to the same file with an explicitly chosen mode.
+Both recorded spans remain readable and the existing mode is unchanged.
+The Linux/Python 3.12 run passed 76 offline tests, Ruff lint and formatting,
+and the local governance check. This validates POSIX mode bits, not Windows
+ACLs or the permissions of existing files and generated reports.

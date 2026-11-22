@@ -1,6 +1,8 @@
 import asyncio
 import base64
 import json
+import os
+import stat
 
 import pytest
 from google.protobuf.json_format import ParseDict
@@ -43,6 +45,26 @@ def test_payloads_are_absent_by_default_and_exceptions_are_sanitized(tmp_path):
     assert "stacktrace" not in text
     assert "gen_ai.tool.call.arguments" not in text
     assert summarize(load_traces(path))["errors"] == 1
+
+
+@pytest.mark.skipif(os.name != "posix", reason="POSIX mode bits only")
+def test_trace_creation_uses_private_mode_without_changing_existing_permissions(tmp_path):
+    path = tmp_path / "run.jsonl"
+    previous_umask = os.umask(0o022)
+    try:
+        with AgentTracer(path) as tracer, tracer.agent("first"):
+            pass
+        assert stat.S_IMODE(path.stat().st_mode) == 0o600
+        path.chmod(0o640)
+        with AgentTracer(path) as tracer, tracer.agent("second"):
+            pass
+    finally:
+        os.umask(previous_umask)
+    assert stat.S_IMODE(path.stat().st_mode) == 0o640
+    assert [span.attributes["gen_ai.agent.name"] for span in load_traces(path)] == [
+        "first",
+        "second",
+    ]
 
 
 def test_nested_redaction(tmp_path):

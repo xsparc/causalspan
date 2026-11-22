@@ -18,6 +18,8 @@ The exporter defaults to an allowlist of metadata and omits tool payloads. Paylo
 capture requires explicit opt-in, redacts sensitive mapping keys, and is not a
 secret detector. Span names and allowed metadata are caller-supplied and can still
 contain sensitive information. Captured payloads must be reviewed before sharing.
+New exporter files request owner-only access on POSIX. Existing file permissions
+are unchanged; Windows access is governed by the directory and file ACLs.
 
 Replay reads recorded tool arguments and results from OTLP attributes. It matches
 calls in recorded order and checks the tool name and exact JSON arguments. The

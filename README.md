@@ -109,6 +109,12 @@ unsupported payloads are marked omitted without changing the live tool return.
 Use separate files for separate processes and protect recordings with filesystem
 permissions. Read the [security policy](SECURITY.md) before sharing traces.
 
+Use `causalspan timeline TRACE --output REPORT.html --hide-identifiers` to omit
+span names, span IDs, and the trace ID from the HTML. Numbered span labels keep
+the parent-linked layout. Relative timings, topology, status, and aggregate
+metrics remain visible and can still be sensitive. Inspect the report before
+sharing it; the input trace is unchanged.
+
 ## Development
 
 ```sh

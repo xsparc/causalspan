@@ -89,7 +89,7 @@ def evaluate(
     return {"passed": not failures, "failures": failures, "summary": summary, "limits": limits}
 
 
-def timeline_html(spans: list[SpanRecord]) -> str:
+def timeline_html(spans: list[SpanRecord], *, hide_identifiers: bool = False) -> str:
     summary = summarize(spans)
     ids = {s.span_id for s in spans}
     children = {}
@@ -105,15 +105,20 @@ def timeline_html(spans: list[SpanRecord]) -> str:
     start = min(s.start_ns for s in spans)
     duration = max(max(s.end_ns for s in spans) - start, 1)
     rows = []
-    for span, depth in ordered:
+    for index, (span, depth) in enumerate(ordered, 1):
         offset = 100 * (span.start_ns - start) / duration
         width = max(0.15, 100 * (span.end_ns - span.start_ns) / duration)
-        label = html.escape(span.name)
-        missing = " · missing parent" if span.parent_id and span.parent_id not in ids else ""
+        label = f"Span {index}" if hide_identifiers else html.escape(span.name)
+        missing = "missing parent" if span.parent_id and span.parent_id not in ids else ""
+        details = " · ".join(
+            value
+            for value in ("" if hide_identifiers else html.escape(span.span_id), missing)
+            if value
+        )
         state = {0: "unset", 1: "ok", 2: "error"}[span.status]
         rows.append(
             f'<tr><td style="padding-left:{min(depth, 20) * 16 + 16}px">{label}'
-            f"<small>{html.escape(span.span_id)}{missing}</small></td>"
+            f"<small>{details}</small></td>"
             f'<td><div class="track"><div class="bar {state}" '
             f'style="left:{offset:.4f}%;width:{width:.4f}%"></div></div></td>'
             f"<td>{span.duration_ms:.3f} ms</td><td>{state}</td></tr>"
@@ -127,6 +132,14 @@ def timeline_html(spans: list[SpanRecord]) -> str:
             ("retries", "retry events"),
         )
     )
+    if hide_identifiers:
+        trace_label = (
+            "<small>Trace and span identifiers hidden. Review metrics before sharing.</small>"
+        )
+        span_header = "SPAN"
+    else:
+        trace_label = f"<small>Trace {html.escape(summary['trace_id'])}</small>"
+        span_header = "OPERATION / SPAN ID"
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -149,8 +162,8 @@ overflow:hidden;border-radius:4px}}.bar{{position:absolute;height:100%;border-ra
 footer{{margin:24px 0;color:#9aa9b8;font-size:13px}}
 </style></head><body><main><div class="eyebrow">CAUSALSPAN / LOCAL TRACE</div>
 <h1>Follow the run.</h1><p>Parent-linked spans · {summary["duration_ms"]:.3f} ms elapsed</p>
-<small>Trace {html.escape(summary["trace_id"])}</small><section class="metrics">{metrics}</section>
-<div class="table"><table><thead><tr><th>OPERATION / SPAN ID</th><th>RELATIVE TIMING</th>
+{trace_label}<section class="metrics">{metrics}</section>
+<div class="table"><table><thead><tr><th>{span_header}</th><th>RELATIVE TIMING</th>
 <th>DURATION</th><th>STATUS</th></tr></thead><tbody>{"".join(rows)}</tbody></table></div>
 <footer>Missing parents: {summary["missing_parents"]} · Model spans missing usage:
 {summary["model_spans_missing_usage"]} · Dropped items: {summary["dropped_items"]}.<br>

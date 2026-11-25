@@ -14,7 +14,9 @@ filesystem access controls, and delete recordings when they are no longer needed
 New exporter recordings and explicit CLI `timeline --output` reports request
 mode `0600` on POSIX. This does not change existing files, synthetic demo report
 permissions, or Windows ACLs. Store outputs in a directory you control and verify
-access controls before sharing.
+access controls before sharing. The timeline's opt-in `--hide-identifiers` flag
+omits identifiers and span names, not timing, topology, status or counts.
+It is not a trace sanitizer.
 
 The replay implementation never calls a live tool. The recording API's `call_tool`
 method deliberately executes the supplied function. Instrumentation is not a

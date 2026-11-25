@@ -23,6 +23,11 @@ def _parser() -> argparse.ArgumentParser:
         child.add_argument("--trace-id")
         if command == "timeline":
             child.add_argument("--output", type=Path, required=True)
+            child.add_argument(
+                "--hide-identifiers",
+                action="store_true",
+                help="omit span names, span IDs, and the trace ID from the report",
+            )
         elif command == "evaluate":
             child.add_argument("--max-tokens", type=int)
             child.add_argument("--max-errors", type=int, default=0)
@@ -97,7 +102,7 @@ def main(argv=None) -> int:
                 else:
                     # Exclusive creation protects traces and existing reports.
                     with open(args.output, "x", encoding="utf-8", opener=open_private) as stream:
-                        stream.write(timeline_html(spans))
+                        stream.write(timeline_html(spans, hide_identifiers=args.hide_identifiers))
                     result = {"written": True}
         print(json.dumps(result, indent=2, allow_nan=False))
         return 1 if args.command == "evaluate" and not result["passed"] else 0

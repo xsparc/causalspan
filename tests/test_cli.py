@@ -77,3 +77,42 @@ def test_timeline_can_hide_names_and_identifiers(tmp_path):
     assert "Span 2" in reduced_html
     assert "RELATIVE TIMING" in reduced_html
     assert trace.read_bytes() == original
+
+
+def test_counts_only_omits_identifiers_timings_and_labels(tmp_path, capsys):
+    from causalspan import AgentTracer
+    from causalspan.reader import load_traces
+
+    trace = tmp_path / "run.jsonl"
+    with AgentTracer(trace) as tracer:
+        for label in ("synthetic-first", "synthetic-second"):
+            with tracer.agent(label):
+                with tracer.model("synthetic-model", provider="test") as model:
+                    tracer.usage(model, input_tokens=7, output_tokens=3)
+    spans = load_traces(trace)
+    source = trace.read_bytes()
+    assert main(["inspect", str(trace), "--counts-only"]) == 2
+    rejected = capsys.readouterr()
+    assert not rejected.out
+    trace_id = spans[0].trace_id
+    assert trace_id not in rejected.err
+    command = ["inspect", str(trace), "--trace-id", trace_id]
+    assert main(command) == 0
+    full = json.loads(capsys.readouterr().out)
+    assert full["trace_id"] == trace_id
+    assert "duration_ms" in full
+    assert main([*command, "--counts-only"]) == 0
+    reduced = json.loads(capsys.readouterr().out)
+    assert reduced == {
+        "spans": 2,
+        "errors": 0,
+        "input_tokens": 7,
+        "output_tokens": 3,
+        "total_tokens": 10,
+        "model_spans_missing_usage": 0,
+        "dropped_items": 0,
+        "retries": 0,
+        "policy_denials": 0,
+    }
+    assert all(type(count) is int for count in reduced.values())
+    assert trace.read_bytes() == source

@@ -115,6 +115,12 @@ the parent-linked layout. Relative timings, topology, status, and aggregate
 metrics remain visible and can still be sensitive. Inspect the report before
 sharing it; the input trace is unchanged.
 
+For a smaller JSON report, run `causalspan inspect TRACE --counts-only`.
+The output is limited to numeric span, error, token, retry, policy-denial and
+completeness counts. It omits trace IDs, timings, parent relationships and
+labels. If the file contains multiple runs, choose one with `--trace-id`.
+Counts can still be sensitive; inspect the output before sharing.
+
 ## Development
 
 ```sh

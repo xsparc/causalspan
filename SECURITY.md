@@ -16,7 +16,9 @@ mode `0600` on POSIX. This does not change existing files, synthetic demo report
 permissions, or Windows ACLs. Store outputs in a directory you control and verify
 access controls before sharing. The timeline's opt-in `--hide-identifiers` flag
 omits identifiers and span names, not timing, topology, status or counts.
-It is not a trace sanitizer.
+It is not a trace sanitizer. The opt-in `inspect --counts-only` output
+uses an explicit list of numeric fields and omits timings and identifiers.
+It still reveals counts and does not modify the original trace.
 
 The replay implementation never calls a live tool. The recording API's `call_tool`
 method deliberately executes the supplied function. Instrumentation is not a

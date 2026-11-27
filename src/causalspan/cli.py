@@ -9,7 +9,7 @@ from ._files import open_private
 from .demo import create_demo
 from .reader import MAX_FILE_BYTES, load_traces, select_trace
 from .replay import Replay
-from .report import compare, evaluate, summarize, timeline_html
+from .report import compare, evaluate, summarize, summarize_counts, timeline_html
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -21,7 +21,13 @@ def _parser() -> argparse.ArgumentParser:
         child = commands.add_parser(command)
         child.add_argument("trace_file", type=Path)
         child.add_argument("--trace-id")
-        if command == "timeline":
+        if command == "inspect":
+            child.add_argument(
+                "--counts-only",
+                action="store_true",
+                help="show numeric counts for one trace without IDs, timing, or labels",
+            )
+        elif command == "timeline":
             child.add_argument("--output", type=Path, required=True)
             child.add_argument(
                 "--hide-identifiers",
@@ -81,7 +87,9 @@ def main(argv=None) -> int:
             replay.assert_complete()
         else:
             spans = load_traces(args.trace_file)
-            if args.command == "inspect" and args.trace_id is None:
+            if args.command == "inspect" and args.counts_only:
+                result = summarize_counts(select_trace(spans, args.trace_id))
+            elif args.command == "inspect" and args.trace_id is None:
                 result = {
                     "runs": [
                         summarize(select_trace(spans, trace_id))

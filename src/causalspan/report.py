@@ -52,6 +52,25 @@ def summarize(spans: list[SpanRecord]) -> dict:
     }
 
 
+def summarize_counts(spans: list[SpanRecord]) -> dict[str, int]:
+    """Return only explicitly selected numeric counts for one trace."""
+    summary = summarize(spans)
+    return {
+        key: summary[key]
+        for key in (
+            "spans",
+            "errors",
+            "input_tokens",
+            "output_tokens",
+            "total_tokens",
+            "model_spans_missing_usage",
+            "dropped_items",
+            "retries",
+            "policy_denials",
+        )
+    }
+
+
 def compare(before: list[SpanRecord], after: list[SpanRecord]) -> dict:
     left, right = summarize(before), summarize(after)
     return {

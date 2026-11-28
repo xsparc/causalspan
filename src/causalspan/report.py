@@ -52,23 +52,36 @@ def summarize(spans: list[SpanRecord]) -> dict:
     }
 
 
+_COUNT_FIELDS = (
+    "spans",
+    "errors",
+    "input_tokens",
+    "output_tokens",
+    "total_tokens",
+    "model_spans_missing_usage",
+    "dropped_items",
+    "retries",
+    "policy_denials",
+)
+
+
 def summarize_counts(spans: list[SpanRecord]) -> dict[str, int]:
     """Return only explicitly selected numeric counts for one trace."""
     summary = summarize(spans)
-    return {
-        key: summary[key]
-        for key in (
-            "spans",
-            "errors",
-            "input_tokens",
-            "output_tokens",
-            "total_tokens",
-            "model_spans_missing_usage",
-            "dropped_items",
-            "retries",
-            "policy_denials",
-        )
-    }
+    return {key: summary[key] for key in _COUNT_FIELDS}
+
+
+def compare_counts(before: dict, after: dict) -> dict:
+    """Compare two counts-only reports without loading the original traces."""
+    for report in (before, after):
+        if (
+            not isinstance(report, dict)
+            or report.keys() != set(_COUNT_FIELDS)
+            or any(type(value) is not int or value < 0 for value in report.values())
+            or report["total_tokens"] != report["input_tokens"] + report["output_tokens"]
+        ):
+            raise ValueError("invalid counts-only report")
+    return {"delta": {key: after[key] - before[key] for key in _COUNT_FIELDS}}
 
 
 def compare(before: list[SpanRecord], after: list[SpanRecord]) -> dict:

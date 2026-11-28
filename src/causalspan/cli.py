@@ -2,6 +2,8 @@
 
 import argparse
 import json
+import os
+import stat
 import sys
 from pathlib import Path
 
@@ -9,7 +11,7 @@ from ._files import open_private
 from .demo import create_demo
 from .reader import MAX_FILE_BYTES, load_traces, select_trace
 from .replay import Replay
-from .report import compare, evaluate, summarize, summarize_counts, timeline_html
+from .report import compare, compare_counts, evaluate, summarize, summarize_counts, timeline_html
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -47,6 +49,11 @@ def _parser() -> argparse.ArgumentParser:
     diff.add_argument("after", type=Path)
     diff.add_argument("--before-trace-id")
     diff.add_argument("--after-trace-id")
+    counts = commands.add_parser(
+        "compare-counts", help="compare two local counts-only JSON reports"
+    )
+    counts.add_argument("before", type=Path)
+    counts.add_argument("after", type=Path)
     demo = commands.add_parser("demo")
     demo.add_argument("--output-dir", type=Path, default=Path("traces/demo"))
     return parser
@@ -69,11 +76,59 @@ def _calls(path: Path) -> list[dict]:
     return calls
 
 
+_MAX_COUNTS_REPORT_BYTES = 4096
+
+
+def _counts_report(path: Path) -> dict:
+    def unique_fields(pairs: list[tuple]) -> dict:
+        fields = dict(pairs)
+        if len(fields) != len(pairs):
+            raise ValueError("duplicate report field")
+        return fields
+
+    initial = path.lstat()
+    if not stat.S_ISREG(initial.st_mode):
+        raise ValueError("counts-only report is not a regular file")
+
+    def open_report(filename: str, flags: int) -> int:
+        return os.open(
+            filename, flags | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
+        )
+
+    with open(path, "rb", opener=open_report) as stream:
+        opened = os.fstat(stream.fileno())
+        if (
+            not stat.S_ISREG(opened.st_mode)
+            or not os.path.samestat(initial, opened)
+            or opened.st_size > _MAX_COUNTS_REPORT_BYTES
+        ):
+            raise ValueError("counts-only report is not a stable, bounded regular file")
+        raw = stream.read(_MAX_COUNTS_REPORT_BYTES + 1)
+        finished = os.fstat(stream.fileno())
+        if (
+            len(raw) > _MAX_COUNTS_REPORT_BYTES
+            or len(raw) != opened.st_size
+            or (finished.st_size, finished.st_mtime_ns) != (opened.st_size, opened.st_mtime_ns)
+        ):
+            raise ValueError("counts-only report changed during read or exceeds the size limit")
+    return json.loads(raw.decode("utf-8"), object_pairs_hook=unique_fields)
+
+
 def main(argv=None) -> int:
     args = _parser().parse_args(argv)
     try:
         if args.command == "demo":
             result = create_demo(args.output_dir)
+        elif args.command == "compare-counts":
+            try:
+                result = compare_counts(_counts_report(args.before), _counts_report(args.after))
+            except (OSError, ValueError, TypeError, RecursionError):
+                print(
+                    "causalspan: compare-counts requires two readable, unchanged "
+                    "local regular files containing valid UTF-8 counts-only JSON",
+                    file=sys.stderr,
+                )
+                return 2
         elif args.command == "compare":
             result = compare(
                 select_trace(load_traces(args.before), args.before_trace_id),

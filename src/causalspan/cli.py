@@ -9,7 +9,7 @@ from ._files import open_private
 from .demo import create_demo
 from .reader import MAX_FILE_BYTES, load_traces, select_trace
 from .replay import Replay
-from .report import compare, evaluate, summarize, summarize_counts, timeline_html
+from .report import compare, compare_counts, evaluate, summarize, summarize_counts, timeline_html
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -47,6 +47,11 @@ def _parser() -> argparse.ArgumentParser:
     diff.add_argument("after", type=Path)
     diff.add_argument("--before-trace-id")
     diff.add_argument("--after-trace-id")
+    counts = commands.add_parser(
+        "compare-counts", help="compare two local counts-only JSON reports"
+    )
+    counts.add_argument("before", type=Path)
+    counts.add_argument("after", type=Path)
     demo = commands.add_parser("demo")
     demo.add_argument("--output-dir", type=Path, default=Path("traces/demo"))
     return parser
@@ -69,11 +74,27 @@ def _calls(path: Path) -> list[dict]:
     return calls
 
 
+def _counts_report(path: Path) -> dict:
+    def unique_fields(pairs: list[tuple]) -> dict:
+        fields = dict(pairs)
+        if len(fields) != len(pairs):
+            raise ValueError("duplicate report field")
+        return fields
+
+    with path.open("rb") as stream:
+        raw = stream.read(4097)
+    if len(raw) > 4096:
+        raise ValueError("counts-only report exceeds the size limit")
+    return json.loads(raw, object_pairs_hook=unique_fields)
+
+
 def main(argv=None) -> int:
     args = _parser().parse_args(argv)
     try:
         if args.command == "demo":
             result = create_demo(args.output_dir)
+        elif args.command == "compare-counts":
+            result = compare_counts(_counts_report(args.before), _counts_report(args.after))
         elif args.command == "compare":
             result = compare(
                 select_trace(load_traces(args.before), args.before_trace_id),

@@ -121,6 +121,17 @@ completeness counts. It omits trace IDs, timings, parent relationships and
 labels. If the file contains multiple runs, choose one with `--trace-id`.
 Counts can still be sensitive; inspect the output before sharing.
 
+Compare shared counts-only reports without exchanging the original traces:
+
+```sh
+uv run causalspan compare-counts before-counts.json after-counts.json
+```
+
+Provide the JSON written by `inspect --counts-only`. The command returns
+after-minus-before deltas only, and rejects unknown, duplicate or malformed
+fields and files larger than 4 KiB. This compares observed counts; it does not
+authenticate the reports, enforce budgets or prove trace completeness.
+
 ## Development
 
 ```sh

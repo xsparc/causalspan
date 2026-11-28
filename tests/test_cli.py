@@ -116,3 +116,38 @@ def test_counts_only_omits_identifiers_timings_and_labels(tmp_path, capsys):
     }
     assert all(type(count) is int for count in reduced.values())
     assert trace.read_bytes() == source
+
+
+def test_compare_counts_cli_uses_only_exported_reports(tmp_path, capsys):
+    demo = tmp_path / "demo"
+    assert main(["demo", "--output-dir", str(demo)]) == 0
+    capsys.readouterr()
+    reports = []
+    for name in ("baseline", "candidate"):
+        trace = demo / f"{name}.otlp.jsonl"
+        assert main(["inspect", str(trace), "--counts-only"]) == 0
+        report = tmp_path / f"{name}-counts.json"
+        report.write_text(capsys.readouterr().out, encoding="utf-8")
+        trace.unlink()
+        reports.append(report)
+    command = ["compare-counts", *map(str, reports)]
+    assert main(command) == 0
+    result = json.loads(capsys.readouterr().out)
+    before, after = (json.loads(path.read_bytes()) for path in reports)
+    assert result == {"delta": {key: after[key] - value for key, value in before.items()}}
+    assert result["delta"]["total_tokens"] == -50
+
+    baseline = json.dumps(before)
+    malformed = (
+        baseline[:-1] + ', "spans": 99}',
+        json.dumps(before | {"spans": True}),
+        json.dumps(before | {"total_tokens": 1}),
+        json.dumps(before | {"synthetic-private-label": 1}),
+        baseline + " " * 4096,
+    )
+    for payload in malformed:
+        reports[0].write_text(payload, encoding="utf-8")
+        assert main(command) == 2
+        captured = capsys.readouterr()
+        assert not captured.out
+        assert "synthetic-private-label" not in captured.err

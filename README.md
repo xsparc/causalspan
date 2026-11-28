@@ -127,10 +127,12 @@ Compare shared counts-only reports without exchanging the original traces:
 uv run causalspan compare-counts before-counts.json after-counts.json
 ```
 
-Provide the JSON written by `inspect --counts-only`. The command returns
-after-minus-before deltas only, and rejects unknown, duplicate or malformed
-fields and files larger than 4 KiB. This compares observed counts; it does not
-authenticate the reports, enforce budgets or prove trace completeness.
+Provide the UTF-8 JSON written by `inspect --counts-only` in two unchanged
+local regular files in an operator-controlled directory, not symlinks, pipes
+or network mounts. The command returns after-minus-before deltas only, and
+rejects unknown, duplicate or malformed fields and files larger than 4 KiB.
+This compares observed counts; it does not authenticate the reports, enforce
+budgets or prove trace completeness.
 
 ## Development
 

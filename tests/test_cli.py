@@ -151,3 +151,50 @@ def test_compare_counts_cli_uses_only_exported_reports(tmp_path, capsys):
         captured = capsys.readouterr()
         assert not captured.out
         assert "synthetic-private-label" not in captured.err
+
+
+def test_compare_counts_cli_rejects_invalid_files_with_fixed_diagnostic(tmp_path, capsys):
+    report = tmp_path / "synthetic-private-filename.json"
+    for bad_path in (report, tmp_path):
+        assert main(["compare-counts", str(bad_path), str(report)]) == 2
+        captured = capsys.readouterr()
+        assert not captured.out
+        assert captured.err.startswith("causalspan: compare-counts requires two readable")
+        assert str(bad_path) not in captured.err
+    for payload in (b"\xff", b"[" * 1800 + b"]" * 1800):
+        report.write_bytes(payload)
+        assert main(["compare-counts", str(report), str(report)]) == 2
+        captured = capsys.readouterr()
+        assert not captured.out
+        assert captured.err.startswith("causalspan: compare-counts requires two readable")
+        assert "Traceback" not in captured.err
+        assert report.name not in captured.err
+
+
+@pytest.mark.skipif(os.name != "posix", reason="POSIX filesystem objects")
+def test_compare_counts_cli_rejects_symlinks_and_pipes(tmp_path, capsys):
+    from subprocess import run
+    from sys import executable
+
+    target = tmp_path / "target.json"
+    demo = tmp_path / "demo"
+    assert main(["demo", "--output-dir", str(demo)]) == 0
+    capsys.readouterr()
+    assert main(["inspect", str(demo / "baseline.otlp.jsonl"), "--counts-only"]) == 0
+    target.write_text(capsys.readouterr().out, encoding="utf-8")
+    for path in (tmp_path / "link", tmp_path / "pipe"):
+        if path.name == "link":
+            path.symlink_to(target)
+        else:
+            os.mkfifo(path)
+        result = run(
+            [executable, "-m", "causalspan", "compare-counts", str(path), str(target)],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+        assert result.returncode == 2
+        assert not result.stdout
+        assert "local regular files" in result.stderr
+        assert str(path) not in result.stderr
